@@ -1,12 +1,18 @@
 import * as THREE from 'three';
+import { VertexNormalsHelper } from 'three/examples/jsm/helpers/VertexNormalsHelper';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
 const $Container = document.getElementById('webgl-container');
 
 class App {
   private container: HTMLElement | null;
+
   private renderer: THREE.WebGLRenderer;
+
   private scene: THREE.Scene;
+
   private camera: THREE.PerspectiveCamera;
+
   private model: THREE.Mesh;
 
   constructor() {
@@ -23,11 +29,16 @@ class App {
     this.camera = this.setupCamera();
     this.setupLight();
     this.model = this.setupModel();
+    this.setupControls();
 
     window.addEventListener('resize', this.resize.bind(this));
     this.resize();
 
     requestAnimationFrame(this.render.bind(this));
+  }
+
+  private setupControls() {
+    new OrbitControls(this.camera, this.container as HTMLElement);
   }
 
   private setupCamera() {
@@ -49,13 +60,27 @@ class App {
   }
 
   private setupModel() {
-    const geometry = new THREE.BoxGeometry(1, 1, 1);
-    const material = new THREE.MeshPhongMaterial({ color: 0x44a88 });
+    const rawPositions = [-1, -1, 0, 1, -1, 0, -1, 1, 0, 1, 1, 0];
+    const rawNormals = [0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1];
+    const rawColors = [1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0];
 
-    const cube = new THREE.Mesh(geometry, material);
-    this.scene.add(cube);
+    const positions = new Float32Array(rawPositions);
+    const normals = new Float32Array(rawNormals);
+    const color = new Float32Array(rawColors);
 
-    return cube;
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+    geometry.setAttribute('color', new THREE.Float32BufferAttribute(color, 3));
+    geometry.setIndex([0, 1, 2, 2, 1, 3]);
+
+    const material = new THREE.MeshPhongMaterial({ color: 'white', vertexColors: true });
+
+    const box = new THREE.Mesh(geometry, material);
+    this.scene.add(box);
+
+    const helper = new VertexNormalsHelper(box, 0.1, 0xffff00);
+    this.scene.add(helper);
   }
 
   resize() {
@@ -68,18 +93,10 @@ class App {
     this.renderer.setSize(width, height);
   }
 
-  render(time: number) {
+  render() {
     this.renderer.render(this.scene, this.camera);
-    this.update(time);
 
     requestAnimationFrame(this.render.bind(this));
-  }
-
-  update(time: number) {
-    const secondUnit = time * 0.001;
-
-    this.model.rotation.x = secondUnit;
-    this.model.rotation.y = secondUnit;
   }
 }
 
